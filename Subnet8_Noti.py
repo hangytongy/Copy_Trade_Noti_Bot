@@ -51,6 +51,26 @@ def order_cleaned(order):
     selected_data['processed_ms'] = (datetime.fromtimestamp(selected_data['processed_ms']/1000)+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
     return selected_data
 
+def close_orders(close):
+    col = ['processed_ms','order_type','price','leverage']
+    j = []
+    for order in close['orders']:
+        selected_data = {key : order[key] for key in col}
+        selected_data['processed_ms'] = (datetime.fromtimestamp(selected_data['processed_ms']/1000)+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
+        j.append(selected_data)
+    return j
+
+def close_format(data):
+    f = ""
+    for entry in data:
+        a=f"Processed Time: {entry['processed_ms']}\n"
+        b=f"Order Type: {entry['order_type']}\n"
+        c=f"Price: {entry['price']}\n"
+        d=f"Leverage: {entry['leverage']}\n"
+        e=f"-" * 40 + "\n"
+        f = f + a + b + c + d + e
+    return f
+
 def post_message(tele_chatid, message, tele_api):
     
     payload = {'chat_id' : tele_chatid, 'text' : message, 'parse_mode' : "HTML"}
@@ -61,7 +81,20 @@ def post_message(tele_chatid, message, tele_api):
     else:
         print(f"error in posting {response}")
 
+def init_global():
+    global tele_api
+    global tele_chatid
+    global wanted_miners
+    global miner_dic
+    global uuid
+
 def main():
+    miners = get_miners()
+
+    for miner in wanted_miners:
+        if miner not in miners:
+            print(f"{miner} not found")
+            wanted_miners.remove(miner)
     
     for miner in wanted_miners:
 
@@ -100,20 +133,17 @@ def main():
                     close_uuid = close['position_uuid']
                     if close_uuid in miner_dic[miner]['uuid']:
                         clean_data_close = close_cleaned(close)
+                        clean_data_close_orders = close_orders(close)
                         print('position close')
                         print(close['position_uuid'],clean_data_close)
-                        intent = f"Miner : {clean_data_close['miner_hotkey']} \nTime : {clean_data_close['close_ms']} \nTrade_pair : {clean_data_close['trade_pair']} \nEntry Price : {clean_data_close['average_entry_price']} \nPosition Tyep : {clean_data_close['position_type']} \nLeverage : {clean_data_close['net_leverage']} \nReturns : {clean_data_close['return_at_close']}"
-                        message = u'\U0001F4A8' + " <b>NEW CLOSE:</b> \n " + intent
+                        intent = f"Miner : {clean_data_close['miner_hotkey']} \nTime : {clean_data_close['close_ms']} \nTrade_pair : {clean_data_close['trade_pair']} \nEntry Price : {clean_data_close['average_entry_price']} \nPosition Type : {clean_data_close['position_type']} \nLeverage : {clean_data_close['net_leverage']}"
+                        intent2 = f"---Orders---\n"
+                        intent3 = close_format(clean_data_close_orders)
+                        message = u'\U0001F4A8' + " <b>NEW CLOSE:</b> \n " + intent + "\n\n" + intent2 + intent3
                         post_message(tele_chatid,message,tele_api)
                         miner_dic[miner]['uuid'].remove(close_uuid)
                         del uuid[close_uuid]
-
-def init_global():
-    global tele_api
-    global tele_chatid
-    global wanted_miners
-    global miner_dic
-    global uuid
+                        print(uuid)
 
 if __name__ == "__main__":
 
@@ -121,16 +151,10 @@ if __name__ == "__main__":
     
     tele_token = ""
     tele_api = f"https://api.telegram.org/bot{tele_token}/sendMessage"
-    tele_chatid = "" 
+    tele_chatid = "" #TEST
 
-    wanted_miners = []
+    wanted_miners = ['']
 
-    miners = get_miners()
-
-    for miner in wanted_miners:
-        if miner not in miners:
-            print(f"{miner} not found")
-            wanted_miners.remove(miner)
             
     miner_dic = {miner : {'uuid':[]} for miner in wanted_miners}
 
