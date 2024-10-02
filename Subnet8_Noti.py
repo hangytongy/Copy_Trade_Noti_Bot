@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import time
 from datetime import datetime, timedelta
+import os
 
 def get_miners():
     url = "http://34.89.151.29/miners"
@@ -81,6 +82,47 @@ def post_message(tele_chatid, message, tele_api):
     else:
         print(f"error in posting {response}")
 
+def points_change(close):
+    try:
+        point = 0
+        for orders in close['orders']:
+            print(orders)
+        if float(close['return_at_close']) > 1:
+            point += 1
+        else:
+            point -= 1
+        print(point)
+        return point
+    except Exception as e:
+        print(e)
+
+def update_point(close,point,csv_file):
+    miner = close['miner_hotkey']
+    try:
+        df = pd.read_csv(csv_file)
+    except Exception as e:
+        print(f"error {e}")
+
+    if miner in df['miner'].values():
+        current_point = df.loc[df['miner'] == miner, 'points']
+        new_points = current_points + point
+        df.loc[df['miner'] == miner, 'points'] = new_points
+    else:
+        new_row = pd.DataFrame({'miner': [miner], 'points': [point]})
+        df = pd.concat([df, new_row], ignore_index=True)
+        
+    df.to_csv(csv_file, index=False)
+    print(f"points updated for miner {miner}")
+
+def get_csv_direct():
+    current_directory = os.getcwd()
+    csv_path = os.path.join(current_directory,'miners.csv')
+    if not os.path.exists(csv_path):
+        df = pd.DataFrame(columns = ['miner','points'])
+        df.to_csv(csv_path,index=False)
+        print("csv created")
+    return csv_path
+
 def init_global():
     global tele_api
     global tele_chatid
@@ -89,6 +131,9 @@ def init_global():
     global uuid
 
 def main():
+
+    csv_path = get_csv_direct()
+    
     miners = get_miners()
 
     for miner in wanted_miners:
@@ -132,6 +177,10 @@ def main():
                 for close in closes:
                     close_uuid = close['position_uuid']
                     if close_uuid in miner_dic[miner]['uuid']:
+                        #points update
+                        points = points_change(clsoe)
+                        update_point(close,points,csv_path)
+                        #clean data and post to tele
                         clean_data_close = close_cleaned(close)
                         clean_data_close_orders = close_orders(close)
                         print('position close')
