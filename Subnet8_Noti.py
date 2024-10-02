@@ -103,7 +103,7 @@ def update_point(close,point,csv_file):
     except Exception as e:
         print(f"error {e}")
 
-    if miner in df['miner'].values():
+    if miner in df['miner'].tolist():
         current_point = df.loc[df['miner'] == miner, 'points']
         new_points = current_points + point
         df.loc[df['miner'] == miner, 'points'] = new_points
@@ -122,6 +122,14 @@ def get_csv_direct():
         df.to_csv(csv_path,index=False)
         print("csv created")
     return csv_path
+
+def get_points(miner,csv_path):
+    df = pd.read_csv(csv_path)
+    if miner in df['miner'].tolist():
+        points = df.loc[df['miner']==miner, 'points']
+    else:
+        points = 0
+    return points
 
 def init_global():
     global tele_api
@@ -153,7 +161,8 @@ def main():
                     if open['position_uuid'] not in miner_dic[miner]['uuid'] and not open['is_closed_position']:
                         print('new open data')
                         print(open['position_uuid'],clean_data)
-                        intent = f"Miner : {clean_data['miner_hotkey']} \nTime : {clean_data['open_ms']} \nTrade_pair : {clean_data['trade_pair']} \nEntry Price : {clean_data['average_entry_price']} \nPosition Type : {clean_data['position_type']} \nLeverage : {clean_data['net_leverage']}"
+                        piunts = get_points(clean_data['miner_hotkey'], csv_path)
+                        intent = f"Miner : {clean_data['miner_hotkey']} \nPoints : {points} \nTime : {clean_data['open_ms']} \nTrade_pair : {clean_data['trade_pair']} \nEntry Price : {clean_data['average_entry_price']} \nPosition Type : {clean_data['position_type']} \nLeverage : {clean_data['net_leverage']}"
                         message = u'\U00002744' + " <b>NEW OPEN:</b> \n " + intent
                         post_message(tele_chatid,message,tele_api)
                         miner_dic[miner]['uuid'].append(open['position_uuid'])
@@ -188,7 +197,8 @@ def main():
                         intent = f"Miner : {clean_data_close['miner_hotkey']} \nTime : {clean_data_close['close_ms']} \nTrade_pair : {clean_data_close['trade_pair']} \nEntry Price : {clean_data_close['average_entry_price']} \nPosition Type : {clean_data_close['position_type']} \nLeverage : {clean_data_close['net_leverage']}"
                         intent2 = f"---Orders---\n"
                         intent3 = close_format(clean_data_close_orders)
-                        message = u'\U0001F4A8' + " <b>NEW CLOSE:</b> \n " + intent + "\n\n" + intent2 + intent3
+                        intent4 = f"\n <b>POINTS : {new_points}</b>\n"
+                        message = u'\U0001F4A8' + " <b>NEW CLOSE:</b> \n " + intent + "\n\n" + intent2 + intent3 + intent4
                         post_message(tele_chatid,message,tele_api)
                         miner_dic[miner]['uuid'].remove(close_uuid)
                         del uuid[close_uuid]
