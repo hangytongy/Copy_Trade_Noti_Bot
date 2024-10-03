@@ -103,7 +103,7 @@ def update_point(close,point,csv_file):
         print(f"error {e}")
 
     if miner in df['miner'].tolist():
-        current_point = df.loc[df['miner'] == miner, 'points']
+        current_points = df.loc[df['miner'] == miner, 'points']
         new_points = current_points + point
         df.loc[df['miner'] == miner, 'points'] = new_points
 
