@@ -84,13 +84,12 @@ def post_message(tele_chatid, message, tele_api):
 
 def points_change(close):
     try:
-        point = 0
         for orders in close['orders']:
             print(orders)
         if float(close['return_at_close']) > 1:
-            point += 1
+            point = 1
         else:
-            point -= 1
+            point = 0
         print(point)
         return point
     except Exception as e:
@@ -107,12 +106,21 @@ def update_point(close,point,csv_file):
         current_point = df.loc[df['miner'] == miner, 'points']
         new_points = current_points + point
         df.loc[df['miner'] == miner, 'points'] = new_points
+
+        current_order = df.loc[df['miner'] == miner, 'total_orders']
+        new_total_order = current_order + 1
+        df.loc[df['miner']==miner, 'total_orders'] = new_total_order
     else:
-        new_row = pd.DataFrame({'miner': [miner], 'points': [point]})
+        new_row = pd.DataFrame({'miner': [miner], 'points': [point], 'total_orders': [1]})
         df = pd.concat([df, new_row], ignore_index=True)
+        new_points = point
+        new_total_order = 1
         
     df.to_csv(csv_file, index=False)
     print(f"points updated for miner {miner}")
+
+    points = (new_points/new_total_order)*100
+    return points
 
 def get_csv_direct():
     current_directory = os.getcwd()
@@ -127,8 +135,11 @@ def get_points(miner,csv_path):
     df = pd.read_csv(csv_path)
     if miner in df['miner'].tolist():
         points = df.loc[df['miner']==miner, 'points']
+        total_orders = df.loc[df['miner']==miner, 'total_orders']
+        points = (points/total_orders)*100
     else:
         points = 0
+
     return points
 
 def init_global():
@@ -161,8 +172,8 @@ def main():
                     if open['position_uuid'] not in miner_dic[miner]['uuid'] and not open['is_closed_position']:
                         print('new open data')
                         print(open['position_uuid'],clean_data)
-                        piunts = get_points(clean_data['miner_hotkey'], csv_path)
-                        intent = f"Miner : {clean_data['miner_hotkey']} \nPoints : {points} \nTime : {clean_data['open_ms']} \nTrade_pair : {clean_data['trade_pair']} \nEntry Price : {clean_data['average_entry_price']} \nPosition Type : {clean_data['position_type']} \nLeverage : {clean_data['net_leverage']}"
+                        points = get_points(clean_data['miner_hotkey'], csv_path)
+                        intent = f"Miner : {clean_data['miner_hotkey']} \nSuccess Rate : {points} \nTime : {clean_data['open_ms']} \nTrade_pair : {clean_data['trade_pair']} \nEntry Price : {clean_data['average_entry_price']} \nPosition Type : {clean_data['position_type']} \nLeverage : {clean_data['net_leverage']}"
                         message = u'\U00002744' + " <b>NEW OPEN:</b> \n " + intent
                         post_message(tele_chatid,message,tele_api)
                         miner_dic[miner]['uuid'].append(open['position_uuid'])
@@ -186,9 +197,11 @@ def main():
                 for close in closes:
                     close_uuid = close['position_uuid']
                     if close_uuid in miner_dic[miner]['uuid']:
+                        
                         #points update
                         points = points_change(clsoe)
-                        update_point(close,points,csv_path)
+                        new_points = update_point(close,points,csv_path)
+                        
                         #clean data and post to tele
                         clean_data_close = close_cleaned(close)
                         clean_data_close_orders = close_orders(close)
@@ -197,7 +210,7 @@ def main():
                         intent = f"Miner : {clean_data_close['miner_hotkey']} \nTime : {clean_data_close['close_ms']} \nTrade_pair : {clean_data_close['trade_pair']} \nEntry Price : {clean_data_close['average_entry_price']} \nPosition Type : {clean_data_close['position_type']} \nLeverage : {clean_data_close['net_leverage']}"
                         intent2 = f"---Orders---\n"
                         intent3 = close_format(clean_data_close_orders)
-                        intent4 = f"\n <b>POINTS : {new_points}</b>\n"
+                        intent4 = f"\n <b>Success Rate : {new_points}</b>\n"
                         message = u'\U0001F4A8' + " <b>NEW CLOSE:</b> \n " + intent + "\n\n" + intent2 + intent3 + intent4
                         post_message(tele_chatid,message,tele_api)
                         miner_dic[miner]['uuid'].remove(close_uuid)
