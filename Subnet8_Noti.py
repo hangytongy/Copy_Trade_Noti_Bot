@@ -187,7 +187,8 @@ def main():
                                 print(order)
                                 uuid[open['position_uuid']].append(order['order_uuid'])
                                 clean_order = order_cleaned(order)
-                                intent = f"Miner : {clean_data['miner_hotkey']} \nTime : {clean_order['processed_ms']} \nTrade_pair : {clean_data['trade_pair']} \nEntry Price : {clean_order['price']} \nPosition Type : {clean_order['order_type']} \nLeverage : {clean_order['leverage']}"
+                                points = get_points(clean_data['miner_hotkey'], csv_path)
+                                intent = f"Miner : {clean_data['miner_hotkey']} \nSuccess Rate : {points}  \nTime : {clean_order['processed_ms']} \nTrade_pair : {clean_data['trade_pair']} \nEntry Price : {clean_order['price']} \nPosition Type : {clean_order['order_type']} \nLeverage : {clean_order['leverage']}"
                                 message = f"<b>ADD ORDER:</b> \n" + intent
                                 post_message(tele_chatid,message,tele_api)
                                 print("order ids ", uuid[open['position_uuid']])
