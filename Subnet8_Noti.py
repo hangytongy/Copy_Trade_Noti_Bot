@@ -103,11 +103,11 @@ def update_point(close,point,csv_file):
         print(f"error {e}")
 
     if miner in df['miner'].tolist():
-        current_points = df.loc[df['miner'] == miner, 'points']
+        current_points = df.loc[df['miner'] == miner, 'points'][0]
         new_points = current_points + point
         df.loc[df['miner'] == miner, 'points'] = new_points
 
-        current_order = df.loc[df['miner'] == miner, 'total_orders']
+        current_order = df.loc[df['miner'] == miner, 'total_orders'][0]
         new_total_order = current_order + 1
         df.loc[df['miner']==miner, 'total_orders'] = new_total_order
     else:
@@ -134,8 +134,8 @@ def get_csv_direct():
 def get_points(miner,csv_path):
     df = pd.read_csv(csv_path)
     if miner in df['miner'].tolist():
-        points = df.loc[df['miner']==miner, 'points']
-        total_orders = df.loc[df['miner']==miner, 'total_orders']
+        points = df.loc[df['miner']==miner, 'points'][0]
+        total_orders = df.loc[df['miner']==miner, 'total_orders'][0]
         points = (points/total_orders)*100
     else:
         points = 0
