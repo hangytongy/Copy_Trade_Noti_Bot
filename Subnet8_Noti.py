@@ -226,7 +226,9 @@ if __name__ == "__main__":
     tele_api = f"https://api.telegram.org/bot{tele_token}/sendMessage"
     tele_chatid = "" #TEST
 
-    wanted_miners = ['']
+    wanted_miners = [
+                    '5HE4v4d2ShWpsWeasynVaawvBjRcZsLX2sd5MGPiwoJfywir','5G9yGe6TEDxx7wD2mpM2XSu8P7gVt6wwUvuXRrHGAYJDA955','5FUbUjTuSrcUbDKTWWbjiyY8QTJS5c9nvWseLSopCFJDju43'
+                    ]
 
             
     miner_dic = {miner : {'uuid':[]} for miner in wanted_miners}
